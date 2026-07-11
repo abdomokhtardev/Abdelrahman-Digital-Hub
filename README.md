@@ -12,8 +12,7 @@
 - **الوضع الليلي والنهاري (Dark/Light Mode):** مدمج بسلاسة مع تصميم يعتمد على لوحة ألوان دافئة ومريحة للعين (رمال الصحراء، الذهبي، الأزرق المخضر).
 - **تأثيرات بصرية (Animations):** استخدام تأثيرات انتقال حركية ناعمة (مثل تأثير هبوب الرياح الرملية) لتجربة مستخدم لا تُنسى.
 
-**رابط المعاينة الحية (Live Demo):** [.netlify.app](https://ahmedawad-tr.netlify.app)  
-**رابط المعاينة الحية (Live Demo):** [https://.pages.dev](https://ahmedawad-tr.pages.dev)  
+**رابط المعاينة الحية (Live Demo):** [https://abdomokhtardev.pages.dev](https://abdomokhtardev.pages.dev)  
 
 ## 🛠️ التقنيات المستخدمة (Tech Stack)
 
