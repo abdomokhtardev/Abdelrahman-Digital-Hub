@@ -20,6 +20,7 @@ export function mapArticle(row) {
     readTime: row.read_time,
     coverImage: row.cover_image ?? '',
     date: formatArticleDate(row.published_at || row.created_at),
+    sortOrder: row.sort_order ?? 0,
   }
 }
 
@@ -31,6 +32,7 @@ export function articleToDb(form) {
     category: form.category,
     read_time: form.readTime,
     cover_image: empty(form.coverImage),
+    sort_order: form.sortOrder ?? 0,
   }
 }
 

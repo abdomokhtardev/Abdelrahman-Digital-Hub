@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { auth } from '../firebaseClient'
+import { onAuthStateChanged } from 'firebase/auth'
 
 function Protected({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setIsLoggedIn(!!data.session))
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user)
+    })
+    return () => unsubscribe()
   }, [])
 
   if (isLoggedIn === null) {

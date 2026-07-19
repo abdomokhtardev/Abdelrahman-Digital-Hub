@@ -5,9 +5,12 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  updateProjectsBulk
 } from '../lib/projects'
 import { ImageUploadField } from '../components/ImageUploadField'
 import { btnPrimary, btnSecondary, cardClass, inputClass, labelClass } from '../lib/ui'
+import { useDragAndDrop } from '../hooks/useDragAndDrop'
+import { InlineConfirm } from '../components/InlineConfirm'
 
 const emptyForm = {
   title: '',
@@ -19,11 +22,10 @@ const emptyForm = {
   projectUrl: '',
   githubUrl: '',
   techStack: '',
-  sortOrder: 0,
 }
 
 function parseTechStack(value) {
-  return value.split(',').map((s) => s.trim()).filter(Boolean)
+  return [...new Set(value.split(',').map((s) => s.trim()).filter(Boolean))]
 }
 
 function ProjectsDashboardPage() {
@@ -34,6 +36,10 @@ function ProjectsDashboardPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
+
+  // DnD state
+  const [draggedId, setDraggedId] = useState(null)
+  const [dragOverId, setDragOverId] = useState(null)
 
   const loadProjects = async () => {
     try {
@@ -68,7 +74,6 @@ function ProjectsDashboardPage() {
       projectUrl: project.projectUrl,
       githubUrl: project.githubUrl,
       techStack: project.techStack.join(', '),
-      sortOrder: project.sortOrder,
     })
     setShowForm(true)
   }
@@ -84,22 +89,36 @@ function ProjectsDashboardPage() {
     setSaving(true)
     setError(null)
 
-    const payload = {
-      title: form.title,
-      shortDesc: form.shortDesc,
-      description: form.description,
-      problem: form.problem,
-      solution: form.solution,
-      imageUrl: form.imageUrl,
-      projectUrl: form.projectUrl,
-      githubUrl: form.githubUrl,
-      techStack: parseTechStack(form.techStack),
-      sortOrder: Number(form.sortOrder) || 0,
-    }
-
     try {
-      if (editingId) await updateProject(editingId, payload)
-      else await createProject(payload)
+      if (editingId) {
+        const payload = {
+          title: form.title,
+          shortDesc: form.shortDesc,
+          description: form.description,
+          problem: form.problem,
+          solution: form.solution,
+          imageUrl: form.imageUrl,
+          projectUrl: form.projectUrl,
+          githubUrl: form.githubUrl,
+          techStack: parseTechStack(form.techStack),
+          sortOrder: projects.find(p => p.id === editingId)?.sortOrder || 0,
+        }
+        await updateProject(editingId, payload)
+      } else {
+        const payload = {
+          title: form.title,
+          shortDesc: form.shortDesc,
+          description: form.description,
+          problem: form.problem,
+          solution: form.solution,
+          imageUrl: form.imageUrl,
+          projectUrl: form.projectUrl,
+          githubUrl: form.githubUrl,
+          techStack: parseTechStack(form.techStack),
+          sortOrder: projects.length,
+        }
+        await createProject(payload)
+      }
       await loadProjects()
       closeForm()
     } catch (err) {
@@ -110,7 +129,6 @@ function ProjectsDashboardPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المشروع؟')) return
     try {
       await deleteProject(id)
       await loadProjects()
@@ -121,6 +139,18 @@ function ProjectsDashboardPage() {
 
   const updateField = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
+
+  const handleReorder = async (updatedItems) => {
+    setProjects(updatedItems)
+    try {
+      await updateProjectsBulk(updatedItems)
+    } catch (err) {
+      setError('حدث خطأ أثناء تحديث الترتيب: ' + err.message)
+      loadProjects()
+    }
+  }
+
+  const dnd = useDragAndDrop({ items: projects, onReorder: handleReorder })
 
   return (
     <div className="animate-wind-reveal">
@@ -206,13 +236,8 @@ function ProjectsDashboardPage() {
 
             <div>
               <label htmlFor="project-tech" className={labelClass}>التقنيات المستخدمة</label>
-              <input id="project-tech" type="text" placeholder="React, Supabase, Tailwind" value={form.techStack} onChange={updateField('techStack')} className={inputClass} />
+              <input id="project-tech" type="text" placeholder="React, Firebase, Tailwind" value={form.techStack} onChange={updateField('techStack')} className={inputClass} />
               <p className="mt-1 text-xs text-muted">افصل بين التقنيات بفاصلة</p>
-            </div>
-
-            <div>
-              <label htmlFor="project-order" className={labelClass}>ترتيب العرض</label>
-              <input id="project-order" type="number" min="0" value={form.sortOrder} onChange={updateField('sortOrder')} className={inputClass} />
             </div>
 
             <div className="flex gap-2">
@@ -227,7 +252,7 @@ function ProjectsDashboardPage() {
 
       <div className="overflow-hidden rounded-2xl border border-sand-200 dark:border-sand-800">
         {loading ? (
-          <p className="p-6 text-center text-sm text-muted">جاري تحميل المشاريع...</p>
+          <p className="p-6 text-center text-sm text-muted animate-pulse">جاري تحميل المشاريع...</p>
         ) : projects.length === 0 ? (
           <p className="p-6 text-center text-sm text-muted">لا توجد مشاريع بعد.</p>
         ) : (
@@ -242,7 +267,17 @@ function ProjectsDashboardPage() {
             </thead>
             <tbody>
               {projects.map((project) => (
-                <tr key={project.id} className="border-b border-sand-100 bg-white last:border-0 dark:border-sand-800/50 dark:bg-sand-950">
+                <tr 
+                  key={project.id}
+                  draggable
+                  onDragStart={(e) => dnd.handlers.onDragStart(e, project.id)}
+                  onDragEnd={dnd.handlers.onDragEnd}
+                  onDragOver={(e) => dnd.handlers.onDragOver(e, project.id)}
+                  onDrop={(e) => dnd.handlers.onDrop(e, project.id)}
+                  className={`border-b border-sand-100 last:border-0 dark:border-sand-800/50 transition-all cursor-grab active:cursor-grabbing ${
+                    dnd.dragOverId === project.id ? 'bg-teal/10 scale-[1.01] shadow-sm' : 'bg-white dark:bg-sand-950'
+                  } ${dnd.draggedId === project.id ? 'opacity-50' : ''}`}
+                >
                   <td className="hidden px-4 py-3 sm:table-cell">
                     {project.imageUrl ? (
                       <img src={project.imageUrl} alt="" className="h-10 w-14 rounded object-cover" />
@@ -250,7 +285,10 @@ function ProjectsDashboardPage() {
                       <span className="text-xs text-muted">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-ink dark:text-sand-200">{project.title}</td>
+                  <td className="px-4 py-3 text-ink dark:text-sand-200">
+                    <span className="text-muted opacity-50 mr-2 inline-block" title="اسحب للترتيب">⋮⋮</span>
+                    {project.title}
+                  </td>
                   <td className="hidden px-4 py-3 text-muted sm:table-cell">
                     {project.techStack.join(' · ') || '—'}
                   </td>
@@ -259,9 +297,7 @@ function ProjectsDashboardPage() {
                       <button type="button" onClick={() => openEdit(project)} className="rounded px-2 py-1 text-xs text-teal hover:bg-sand-100 dark:text-gold-light dark:hover:bg-sand-800">
                         تعديل
                       </button>
-                      <button type="button" onClick={() => handleDelete(project.id)} className="rounded px-2 py-1 text-xs text-terracotta hover:bg-terracotta/10">
-                        حذف
-                      </button>
+                      <InlineConfirm onConfirm={() => handleDelete(project.id)} />
                     </div>
                   </td>
                 </tr>

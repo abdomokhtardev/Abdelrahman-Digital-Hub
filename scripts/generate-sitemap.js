@@ -1,6 +1,5 @@
 import fs from 'fs'
 import path from 'path'
-import { createClient } from '@supabase/supabase-js'
 
 // Helper to load .env variables manually for Node script
 function loadEnv() {
@@ -22,16 +21,31 @@ function loadEnv() {
 }
 
 const env = loadEnv()
-const supabaseUrl = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
-const supabaseKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const projectId = env.VITE_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️ Missing Supabase URL or Key. Skipping sitemap generation.')
+if (!projectId) {
+  console.warn('⚠️ Missing Firebase Project ID. Skipping sitemap generation.')
   process.exit(0)
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
 const BASE_URL = 'https://your-domain.com' // Should be changed to actual domain
+
+async function fetchCollection(collection) {
+  try {
+    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    if (!data.documents) return []
+    return data.documents.map(doc => {
+      const id = doc.name.split('/').pop()
+      const updateTime = doc.updateTime
+      return { id, updated_at: updateTime }
+    })
+  } catch (error) {
+    console.error(`Error fetching ${collection}:`, error)
+    return []
+  }
+}
 
 async function generateSitemap() {
   console.log('Generating sitemap...')
@@ -44,20 +58,16 @@ async function generateSitemap() {
   })
 
   // Add Projects
-  const { data: projects } = await supabase.from('projects').select('id, updated_at')
-  if (projects) {
-    projects.forEach(project => {
-      sitemapItems.push(`<url><loc>${BASE_URL}/projects/${project.id}</loc><lastmod>${project.updated_at}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`)
-    })
-  }
+  const projects = await fetchCollection('projects')
+  projects.forEach(project => {
+    sitemapItems.push(`<url><loc>${BASE_URL}/projects/${project.id}</loc><lastmod>${project.updated_at}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`)
+  })
 
   // Add Articles
-  const { data: articles } = await supabase.from('articles').select('id, updated_at')
-  if (articles) {
-    articles.forEach(article => {
-      sitemapItems.push(`<url><loc>${BASE_URL}/articles/${article.id}</loc><lastmod>${article.updated_at}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`)
-    })
-  }
+  const articles = await fetchCollection('articles')
+  articles.forEach(article => {
+    sitemapItems.push(`<url><loc>${BASE_URL}/articles/${article.id}</loc><lastmod>${article.updated_at}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`)
+  })
 
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

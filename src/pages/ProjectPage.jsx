@@ -88,9 +88,9 @@ export function ProjectPage({ project, onBack }) {
             <span>التقنيات المستخدمة</span>
           </h2>
           <div className="flex flex-wrap gap-2">
-            {project.techStack.map((tech) => (
+            {project.techStack.map((tech, index) => (
               <span
-                key={tech}
+                key={`${tech}-${index}`}
                 className="rounded-xl border border-gold/15 bg-sand-100/80 px-4 py-1.5 text-xs font-bold text-teal dark:bg-sand-900 dark:text-gold-light dark:border-sand-700/50 transition-all hover:border-gold/40 hover:bg-gold/5"
               >
                 {tech}

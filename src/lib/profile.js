@@ -1,27 +1,26 @@
-import { supabase } from '../supabaseClient'
+import { db } from '../firebaseClient'
+import { collection, doc, getDocs, setDoc, addDoc, query, limit } from 'firebase/firestore'
 import { mapProfile, profileToDb } from './mappers'
 
+const COLLECTION_NAME = 'profiles'
+
 export async function fetchProfile() {
-  const { data, error } = await supabase.from('profiles').select('*').limit(1).maybeSingle()
-  if (error) throw error
-  return data ? mapProfile(data) : null
+  const q = query(collection(db, COLLECTION_NAME), limit(1))
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return null
+  const firstDoc = snapshot.docs[0]
+  return mapProfile({ id: firstDoc.id, ...firstDoc.data() })
 }
 
 export async function saveProfile({ id, ...form }) {
   const payload = profileToDb(form)
 
   if (id) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) throw error
-    return mapProfile(data)
+    const docRef = doc(db, COLLECTION_NAME, id)
+    await setDoc(docRef, payload, { merge: true })
+    return mapProfile({ id, ...payload })
   }
 
-  const { data, error } = await supabase.from('profiles').insert(payload).select().single()
-  if (error) throw error
-  return mapProfile(data)
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), payload)
+  return mapProfile({ id: docRef.id, ...payload })
 }

@@ -36,9 +36,9 @@ export function ProjectCard({ project, onClick }) {
       <div className="px-5 pb-5">
         {project.techStack.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {project.techStack.map((tech) => (
+            {project.techStack.map((tech, index) => (
               <span
-                key={tech}
+                key={`${tech}-${index}`}
                 className="rounded-xl border border-gold/10 bg-sand-100/80 px-2.5 py-0.5 text-[10px] font-semibold text-teal dark:bg-sand-800/80 dark:text-gold-light"
               >
                 {tech}

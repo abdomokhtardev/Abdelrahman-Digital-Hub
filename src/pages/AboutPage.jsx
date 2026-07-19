@@ -7,7 +7,6 @@ import { SOCIAL_LINKS } from '../lib/constants'
 function AboutPage() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(null)
 
   useEffect(() => {
     fetchProfile()
@@ -89,73 +88,37 @@ function AboutPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {profile?.vodafoneCash && (
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(profile.vodafoneCash.replace(/\D/g, ''))
-                  setCopied('vodafone')
-                  setTimeout(() => setCopied(null), 2000)
-                }}
-                className={`${cardClass} w-full p-5 text-center space-y-2 block transition-transform hover:-translate-y-1`}
+              <a
+                href={profile.vodafoneCash.includes('http') ? profile.vodafoneCash : `https://wa.me/${profile.vodafoneCash.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className={`${cardClass} w-full p-5 text-center space-y-2 block transition-all hover:-translate-y-1 hover:shadow-md hover:border-gold/30`}
               >
                 <div className="text-3xl">📱</div>
                 <h3 className="font-kufi text-sm font-bold text-ink dark:text-sand-100 tracking-wider">
                   Vodafone Cash
                 </h3>
-                <p className="font-mono text-lg font-bold text-terracotta dark:text-gold tracking-widest">
-                  {profile.vodafoneCash}
+                <p className="text-xs font-serif text-muted mt-2">
+                  اضغط للتحويل المباشر
                 </p>
-                <p className={`text-xs font-serif transition-colors ${copied === 'vodafone' ? 'text-terracotta dark:text-gold font-bold' : 'text-muted'}`}>
-                  {copied === 'vodafone' ? 'تم النسخ بنجاح! ✅' : 'اضغط لنسخ الرقم'}
-                </p>
-              </button>
+              </a>
             )}
 
             {profile?.instapay && (
-              <div className={`${cardClass} w-full p-5 text-center space-y-3 transition-transform hover:-translate-y-1`}>
+              <a
+                href={profile.instapay.includes('http') ? profile.instapay : `https://instapay.eg/${profile.instapay}`}
+                target="_blank"
+                rel="noreferrer"
+                className={`${cardClass} w-full p-5 text-center space-y-2 block transition-all hover:-translate-y-1 hover:shadow-md hover:border-teal/30`}
+              >
                 <div className="text-3xl">⚡</div>
                 <h3 className="font-kufi text-sm font-bold text-ink dark:text-sand-100 tracking-wider">
                   InstaPay
                 </h3>
-
-                <div className="flex flex-col gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(profile.instapay.replace(/^https?:\/\/[^/]+\//, ''))
-                      setCopied('instapay-user')
-                      setTimeout(() => setCopied(null), 2000)
-                    }}
-                    className="flex items-center justify-between rounded-xl bg-sand-50 p-3 hover:bg-sand-100 dark:bg-sand-900/40 dark:hover:bg-sand-900/80 transition-colors border border-sand-200/50 dark:border-sand-800/50"
-                  >
-                    <span className="font-mono text-sm sm:text-base font-bold text-teal dark:text-teal-light tracking-widest truncate">
-                      {profile.instapay.replace(/^https?:\/\/[^/]+\//, '')}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-bold text-muted bg-white dark:bg-sand-950 px-2 py-1 rounded-md shadow-sm border border-sand-100 dark:border-sand-800 shrink-0 ml-2">
-                      {copied === 'instapay-user' ? 'تم النسخ ✅' : 'نسخ اليوزر'}
-                    </span>
-                  </button>
-
-                  {profile?.vodafoneCash && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(profile.vodafoneCash.replace(/\D/g, ''))
-                        setCopied('instapay-num')
-                        setTimeout(() => setCopied(null), 2000)
-                      }}
-                      className="flex items-center justify-between rounded-xl bg-sand-50 p-3 hover:bg-sand-100 dark:bg-sand-900/40 dark:hover:bg-sand-900/80 transition-colors border border-sand-200/50 dark:border-sand-800/50"
-                    >
-                      <span className="font-mono text-sm sm:text-base font-bold text-teal dark:text-teal-light tracking-widest">
-                        {profile.vodafoneCash}
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-bold text-muted bg-white dark:bg-sand-950 px-2 py-1 rounded-md shadow-sm border border-sand-100 dark:border-sand-800 shrink-0 ml-2">
-                        {copied === 'instapay-num' ? 'تم النسخ ✅' : 'نسخ الرقم'}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                <p className="text-xs font-serif text-muted mt-2">
+                  اضغط للتحويل المباشر
+                </p>
+              </a>
             )}
           </div>
         </section>

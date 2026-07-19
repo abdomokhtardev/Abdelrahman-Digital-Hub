@@ -1,8 +1,40 @@
 import { useRef, useState } from 'react'
-import { uploadImage, deleteImage } from '../lib/storage'
 import { inputClass, labelClass } from '../lib/ui'
 
-export function ImageUploadField({ id, label, hint, value, onChange, folder, disabled }) {
+// دالة مساعدة لضغط الصورة وتحويلها إلى Base64
+const compressAndConvertToBase64 = (file, maxWidth = 800, quality = 0.7) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target.result
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        resolve(dataUrl)
+      }
+      img.onerror = (error) => reject(error)
+    }
+    reader.onerror = (error) => reject(error)
+  })
+}
+
+export function ImageUploadField({ id, label, hint, value, onChange, disabled }) {
   const fileRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
@@ -15,7 +47,16 @@ export function ImageUploadField({ id, label, hint, value, onChange, folder, dis
     setUploading(true)
     setUploadError(null)
     try {
-      onChange(await uploadImage(file, folder))
+      // ضغط الصورة وتحويلها إلى Base64
+      const base64String = await compressAndConvertToBase64(file, 800, 0.7)
+      // التحقق من أن حجم النص لا يتجاوز حد معين (مثلاً 700 كيلوبايت)
+      // Firestore Document حدها الأقصى 1 ميجابايت (1048576 بايت)
+      const sizeInBytes = new Blob([base64String]).size
+      if (sizeInBytes > 800000) {
+        throw new Error('حجم الصورة بعد الضغط لا يزال كبيراً جداً. يرجى اختيار صورة أصغر.')
+      }
+      
+      onChange(base64String)
     } catch (err) {
       setUploadError(err.message)
     } finally {
@@ -24,12 +65,8 @@ export function ImageUploadField({ id, label, hint, value, onChange, folder, dis
     }
   }
 
-  const handleRemove = async () => {
-    if (value && value.includes('supabase.co')) {
-      setUploading(true)
-      await deleteImage(value)
-      setUploading(false)
-    }
+  const handleRemove = () => {
+    // لم نعد نحتاج لحذف الصورة من الخادم لأنها مجرد نص
     onChange('')
   }
 

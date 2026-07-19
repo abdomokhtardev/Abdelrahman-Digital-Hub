@@ -12,13 +12,14 @@
 - **الوضع الليلي والنهاري (Dark/Light Mode):** مدمج بسلاسة مع تصميم يعتمد على لوحة ألوان دافئة ومريحة للعين (رمال الصحراء، الذهبي، الأزرق المخضر).
 - **تأثيرات بصرية (Animations):** استخدام تأثيرات انتقال حركية ناعمة (مثل تأثير هبوب الرياح الرملية) لتجربة مستخدم لا تُنسى.
 
-**رابط المعاينة الحية (Live Demo):** [https://abdomokhtardev.pages.dev](https://abdomokhtardev.pages.dev)  
+**رابط المعاينة الحية (Live Demo):** [.netlify.app](https://ahmedawad-tr.netlify.app)  
+**رابط المعاينة الحية (Live Demo):** [https://.pages.dev](https://ahmedawad-tr.pages.dev)  
 
 ## 🛠️ التقنيات المستخدمة (Tech Stack)
 
 - **Frontend:** React 19, Vite, React Router, Tailwind CSS 4.
-- **Backend & Database:** Supabase (PostgreSQL, Authentication, Storage).
-- **Security:** Strict Row Level Security (RLS) policies.
+- **Backend & Database:** Firebase (Firestore, Authentication).
+- **Security:** Firebase Security Rules.
 - **Icons & UI:** React Icons, Custom CSS Animations.
 
 ## 🚀 كيفية تشغيل المشروع محلياً (Local Setup)
@@ -33,18 +34,24 @@ cd "your-repo-name"
 npm install
 ```
 
-### 3. إعداد قاعدة البيانات (Supabase Setup)
-المشروع يعتمد بالكامل على Supabase كخلفية (Backend).
-1. قم بإنشاء مشروع جديد على موقع [Supabase](https://supabase.com/).
-2. اذهب إلى قسم **Authentication** وأنشئ مستخدماً جديداً (هذا سيكون حساب الآدمن الخاص بك)، ثم انسخ الـ **User UID** الخاص به.
-3. افتح ملف `supabase/schema.sql` الموجود في المشروع، وابحث عن الـ ID الافتراضي واستبدله بالـ ID الخاص بك.
-4. اذهب إلى قسم **SQL Editor** في لوحة تحكم Supabase، الصق الكود بعد التعديل، واضغط **Run**. (سيقوم هذا بتأسيس جميع الجداول، السياسات، والتخزين).
+### 3. إعداد قاعدة البيانات (Firebase Setup)
+المشروع يعتمد بالكامل على Firebase كخلفية (Backend).
+1. قم بإنشاء مشروع جديد على موقع [Firebase Console](https://console.firebase.google.com/).
+2. قم بتفعيل **Authentication** و **Firestore Database**.
+3. قم بإنشاء حساب لنفسك ليكون حساب الآدمن عبر لوحة التحكم.
+4. اذهب إلى تبويب **Rules** في Firestore والصق القواعد الموجودة في ملف `firestore.rules` في المشروع واضغط Publish لحماية البيانات.
+5. لرفع الصور، المشروع يحول الصور إلى نص (Base64) ويخزنها مباشرة في قاعدة البيانات مما يغني عن استخدام Firebase Storage.
 
 ### 4. إعداد متغيرات البيئة (Environment Variables)
-قم بإنشاء ملف `.env.local` في المجلد الرئيسي للمشروع، وأضف مفاتيح مشروعك في Supabase:
+قم بإنشاء ملف `.env.local` في المجلد الرئيسي للمشروع، وأضف مفاتيح مشروعك في Firebase بالإضافة إلى الـ UID الخاص بحسابك كآدمن:
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_ADMIN_UID=your_admin_user_id
 ```
 
 ### 5. تشغيل الخادم المحلي (Development Server)
@@ -54,7 +61,7 @@ npm run dev
 افتح الرابط المعروض في الطرفية (غالباً `http://localhost:5173`) لرؤية المشروع.
 
 ## 🔒 الأمان (Security)
-تم تأمين قاعدة البيانات بشكل كامل باستخدام **Row Level Security (RLS)**. السياسات المكتوبة تضمن أن "الآدمن فقط" (صاحب الـ UID المطابق) هو من يمتلك صلاحيات الإضافة، التعديل، الحذف، ورفع الصور (Write Permissions). بينما يتمتع جميع الزوار بصلاحيات القراءة فقط (Read Permissions).
+تم تأمين قاعدة البيانات بشكل كامل باستخدام **Firebase Security Rules**. القواعد المكتوبة تضمن أن "الآدمن فقط" (المصرح له بالدخول) هو من يمتلك صلاحيات الإضافة، التعديل، والحذف (Write Permissions). بينما يتمتع جميع الزوار بصلاحيات القراءة فقط (Read Permissions).
 
 ---
 *«خطواتٌ فوق رمال الفكر ترسمُ أثراً لا يزول»* ✨

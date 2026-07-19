@@ -1,82 +1,99 @@
-import { supabase } from '../supabaseClient'
+import { db } from '../firebaseClient'
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore'
 import { mapSkillCategory, skillCategoryToDb, mapSkill, skillToDb } from './mappers'
+
+const CATEGORIES_COLLECTION = 'skill_categories'
+const SKILLS_COLLECTION = 'skills'
 
 // ─── Skill Categories ───
 
 export async function fetchSkillCategories() {
-  const { data, error } = await supabase
-    .from('skill_categories')
-    .select('*, skills(*)')
-    .order('sort_order', { ascending: true })
+  const catQuery = query(collection(db, CATEGORIES_COLLECTION), orderBy('sort_order', 'asc'))
+  const skillsQuery = query(collection(db, SKILLS_COLLECTION), orderBy('sort_order', 'asc'))
 
-  if (error) throw error
-  return (data ?? []).map(mapSkillCategory)
+  const [catSnapshot, skillsSnapshot] = await Promise.all([
+    getDocs(catQuery),
+    getDocs(skillsQuery)
+  ])
+
+  const categories = catSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  const skills = skillsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+  // دمج المهارات داخل فئاتها
+  const categoriesWithSkills = categories.map(cat => ({
+    ...cat,
+    skills: skills.filter(s => s.category_id === cat.id)
+  }))
+
+  return categoriesWithSkills.map(mapSkillCategory)
 }
 
 export async function createSkillCategory(form) {
-  const { data, error } = await supabase
-    .from('skill_categories')
-    .insert(skillCategoryToDb(form))
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapSkillCategory({ ...data, skills: [] })
+  const newCat = skillCategoryToDb(form)
+  const docRef = await addDoc(collection(db, CATEGORIES_COLLECTION), newCat)
+  return mapSkillCategory({ id: docRef.id, ...newCat, skills: [] })
 }
 
 export async function updateSkillCategory(id, form) {
-  const { data, error } = await supabase
-    .from('skill_categories')
-    .update(skillCategoryToDb(form))
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapSkillCategory({ ...data, skills: [] })
+  const docRef = doc(db, CATEGORIES_COLLECTION, id)
+  const updatedData = skillCategoryToDb(form)
+  await updateDoc(docRef, updatedData)
+  return mapSkillCategory({ id, ...updatedData, skills: [] })
 }
 
 export async function deleteSkillCategory(id) {
-  const { error } = await supabase.from('skill_categories').delete().eq('id', id)
-  if (error) throw error
+  const docRef = doc(db, CATEGORIES_COLLECTION, id)
+  await deleteDoc(docRef)
+}
+
+export async function updateSkillCategoriesBulk(categories) {
+  const batch = writeBatch(db)
+  
+  categories.forEach((cat) => {
+    const data = skillCategoryToDb(cat)
+    if (cat.id) {
+      const docRef = doc(db, CATEGORIES_COLLECTION, cat.id)
+      batch.update(docRef, data)
+    }
+  })
+
+  await batch.commit()
 }
 
 // ─── Skills ───
 
 export async function createSkill(form) {
-  const { data, error } = await supabase
-    .from('skills')
-    .insert(skillToDb(form))
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapSkill(data)
+  const newSkill = skillToDb(form)
+  const docRef = await addDoc(collection(db, SKILLS_COLLECTION), newSkill)
+  return mapSkill({ id: docRef.id, ...newSkill })
 }
 
 export async function updateSkill(id, form) {
-  const { data, error } = await supabase
-    .from('skills')
-    .update(skillToDb(form))
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapSkill(data)
+  const docRef = doc(db, SKILLS_COLLECTION, id)
+  const updatedData = skillToDb(form)
+  await updateDoc(docRef, updatedData)
+  return mapSkill({ id, ...updatedData })
 }
 
 export async function deleteSkill(id) {
-  const { error } = await supabase.from('skills').delete().eq('id', id)
-  if (error) throw error
+  const docRef = doc(db, SKILLS_COLLECTION, id)
+  await deleteDoc(docRef)
 }
 
 export async function updateSkillsBulk(skills) {
-  const { data, error } = await supabase
-    .from('skills')
-    .upsert(skills.map(skillToDb))
-    .select()
+  const batch = writeBatch(db)
+  
+  const updatedSkills = []
+  
+  skills.forEach((skill) => {
+    const skillData = skillToDb(skill)
+    if (skill.id) {
+      const docRef = doc(db, SKILLS_COLLECTION, skill.id)
+      batch.update(docRef, skillData)
+      updatedSkills.push({ id: skill.id, ...skillData })
+    }
+  })
 
-  if (error) throw error
-  return data.map(mapSkill)
+  await batch.commit()
+  return updatedSkills.map(mapSkill)
 }

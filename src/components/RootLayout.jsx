@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { auth } from '../firebaseClient'
+import { onAuthStateChanged } from 'firebase/auth'
 import { ThemeToggle } from './ThemeToggle'
 
 const navLink = (active) =>
@@ -41,8 +42,12 @@ export default function RootLayout() {
   }, [key, prevKey])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setIsAuth(!!data.session))
-  }, [pathname])
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuth(!!user)
+    })
+    return () => unsubscribe()
+  }, [])
+
 
   return (
     <div className="arabic-pattern flex min-h-screen flex-col relative overflow-x-hidden">

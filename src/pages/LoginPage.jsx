@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { auth } from '../firebaseClient'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 import { btnPrimary, cardClass, inputClass, labelClass } from '../lib/ui'
 
 function LoginPage() {
@@ -14,8 +15,7 @@ function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
+      await signInWithEmailAndPassword(auth, email, password)
       navigate('/dashboard')
     } catch (error) {
       alert('خطأ في تسجيل الدخول: ' + error.message)

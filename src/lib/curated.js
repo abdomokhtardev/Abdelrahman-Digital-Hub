@@ -1,40 +1,47 @@
-import { supabase } from '../supabaseClient'
+import { db } from '../firebaseClient'
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore'
 import { mapCuratedItem, curatedItemToDb } from './mappers'
 
-export async function fetchCuratedContent() {
-  const { data, error } = await supabase
-    .from('curated_content')
-    .select('*')
-    .order('sort_order', { ascending: true })
+const COLLECTION_NAME = 'curated_content'
 
-  if (error) throw error
-  return (data ?? []).map(mapCuratedItem)
+export async function fetchCuratedContent() {
+  const q = query(collection(db, COLLECTION_NAME), orderBy('sort_order', 'asc'))
+  const snapshot = await getDocs(q)
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  return data.map(mapCuratedItem)
 }
 
 export async function createCuratedItem(form) {
-  const { data, error } = await supabase
-    .from('curated_content')
-    .insert(curatedItemToDb(form))
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapCuratedItem(data)
+  const newItem = curatedItemToDb(form)
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), newItem)
+  return mapCuratedItem({ id: docRef.id, ...newItem })
 }
 
 export async function updateCuratedItem(id, form) {
-  const { data, error } = await supabase
-    .from('curated_content')
-    .update(curatedItemToDb(form))
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return mapCuratedItem(data)
+  const docRef = doc(db, COLLECTION_NAME, id)
+  const updatedData = curatedItemToDb(form)
+  await updateDoc(docRef, updatedData)
+  return mapCuratedItem({ id, ...updatedData })
 }
 
 export async function deleteCuratedItem(id) {
-  const { error } = await supabase.from('curated_content').delete().eq('id', id)
-  if (error) throw error
+  const docRef = doc(db, COLLECTION_NAME, id)
+  await deleteDoc(docRef)
+}
+
+export async function updateCuratedBulk(items) {
+  const batch = writeBatch(db)
+  const updatedItems = []
+  
+  items.forEach((item) => {
+    const data = curatedItemToDb(item)
+    if (item.id) {
+      const docRef = doc(db, COLLECTION_NAME, item.id)
+      batch.update(docRef, data)
+      updatedItems.push({ id: item.id, ...data })
+    }
+  })
+
+  await batch.commit()
+  return updatedItems.map(mapCuratedItem)
 }
